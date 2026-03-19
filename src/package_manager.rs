@@ -24,13 +24,70 @@ pub trait PackageManager {
 }
 
 #[cfg(target_os = "windows")]
-fn winget_exe() -> &'static str {
-    "winget"
+fn winget_exe() -> String {
+    use std::path::PathBuf;
+
+    fn dir_version(path: &PathBuf) -> Vec<u32> {
+        // Directory name: Microsoft.DesktopAppInstaller_1.2.3.4_x64_8wekyb3d8bbwe
+        // Version is the second underscore-delimited segment
+        path.file_name()
+            .and_then(|n| n.to_str())
+            .and_then(|n| n.split('_').nth(1))
+            .map(|v| v.split('.').filter_map(|p| p.parse().ok()).collect())
+            .unwrap_or_default()
+    }
+
+    // Try system path first — pick highest version if multiple installs exist
+    if let Ok(program_files) = std::env::var("ProgramFiles") {
+        let windows_apps = PathBuf::from(program_files).join("WindowsApps");
+        if let Ok(entries) = std::fs::read_dir(&windows_apps) {
+            let mut candidates: Vec<PathBuf> = entries
+                .filter_map(|e| e.ok())
+                .map(|e| e.path())
+                .filter(|p| {
+                    p.file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|n| {
+                            n.starts_with("Microsoft.DesktopAppInstaller_")
+                                && n.ends_with("_8wekyb3d8bbwe")
+                        })
+                        .unwrap_or(false)
+                })
+                .map(|p| p.join("winget.exe"))
+                .filter(|p| p.exists())
+                .collect();
+
+            candidates.sort_by(|a, b| {
+                let va = dir_version(&a.parent().unwrap().to_path_buf());
+                let vb = dir_version(&b.parent().unwrap().to_path_buf());
+                vb.cmp(&va) // descending
+            });
+
+            if let Some(path) = candidates.first() {
+                return path.to_string_lossy().into_owned();
+            }
+        }
+    }
+
+    // Fall back to user-scoped install
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        let user_path = PathBuf::from(local_app_data)
+            .join("Microsoft")
+            .join("WindowsApps")
+            .join("Microsoft.DesktopAppInstaller_8wekyb3d8bbwe")
+            .join("winget.exe");
+        if user_path.exists() {
+            return user_path.to_string_lossy().into_owned();
+        }
+    }
+
+    // Last resort: rely on PATH
+    "winget".to_string()
 }
 
 #[cfg(not(target_os = "windows"))]
-fn winget_exe() -> &'static str {
-    "winget-stub/winget.exe"
+fn winget_exe() -> String {
+    "winget-stub/winget.exe".to_string()
 }
 
 // Decode raw bytes from winget output (UTF-16LE).
@@ -144,7 +201,7 @@ fn parse_table(data: &[u8]) -> Vec<HashMap<String, String>> {
 }
 
 pub struct Winget {
-    exe: &'static str,
+    exe: String,
 }
 
 impl Winget {
@@ -155,7 +212,7 @@ impl Winget {
 
 impl PackageManager for Winget {
     fn list_upgrades(&self) -> Vec<PackageUpgrade> {
-        let output = match Command::new(self.exe).args(["upgrade"]).output() {
+        let output = match Command::new(&self.exe).args(["upgrade"]).output() {
             Ok(o) => o,
             Err(e) => {
                 log::error!("Failed to run {}: {}", self.exe, e);
@@ -181,7 +238,7 @@ impl PackageManager for Winget {
     }
 
     fn list(&self) -> Vec<Package> {
-        let output = match Command::new(self.exe).args(["list"]).output() {
+        let output = match Command::new(&self.exe).args(["list"]).output() {
             Ok(o) => o,
             Err(e) => {
                 log::error!("Failed to run {}: {}", self.exe, e);
@@ -203,7 +260,7 @@ impl PackageManager for Winget {
     }
 
     fn upgrade(&self, package: &Package) -> Result<Package> {
-        let output = Command::new(self.exe)
+        let output = Command::new(&self.exe)
             .args([
                 "upgrade",
                 "--id",
