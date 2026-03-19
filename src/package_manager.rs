@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::process::Command;
@@ -17,17 +17,10 @@ pub struct PackageUpgrade {
     pub to: Package,
 }
 
-#[derive(Debug, Serialize)]
-pub struct UpdateResult {
-    pub updated: Vec<PackageUpgrade>,
-    pub failed: Vec<String>,
-}
-
 pub trait PackageManager {
     fn list_upgrades(&self) -> Vec<PackageUpgrade>;
-    fn upgrade_all(&self) -> Result<UpdateResult>;
-    fn list(&self) -> 
-    fn upgrade(&self, package: &Package) -> Result<PackageUpgrade>;
+    fn list(&self) -> Vec<Package>;
+    fn upgrade(&self, package: &Package) -> Result<Package>;
 }
 
 #[cfg(target_os = "windows")]
@@ -79,7 +72,6 @@ fn strip_garbage(text: String) -> String {
 // Returns one HashMap<column_name, value> per data row (column names are lowercased).
 fn parse_table(data: &[u8]) -> Vec<HashMap<String, String>> {
     let text = strip_garbage(decode_utf16le(data));
-        dbg!(&text);
     let lines: Vec<&str> = text.lines().collect();
 
     // Find the separator line: trimmed content is all dashes (10+)
@@ -188,36 +180,59 @@ impl PackageManager for Winget {
             .collect()
     }
 
-    fn upgrade_all(&self) -> Result<UpdateResult> {
-        let _output = Command::new(self.exe)
-            .args([
-                "upgrade",
-                "--all",
-                "--silent",
-                "--accept-package-agreements",
-                "--accept-source-agreements",
-            ])
-            .output()?;
+    fn list(&self) -> Vec<Package> {
+        let output = match Command::new(self.exe).args(["list"]).output() {
+            Ok(o) => o,
+            Err(e) => {
+                log::error!("Failed to run {}: {}", self.exe, e);
+                return vec![];
+            }
+        };
 
-        Ok(UpdateResult { updated: vec![], failed: vec![] })
+        parse_table(&output.stdout)
+            .into_iter()
+            .filter_map(|mut row| {
+                let id = row.remove("id")?;
+                if id.is_empty() { return None; }
+                let name    = row.remove("name").unwrap_or_default();
+                let source  = row.remove("source").unwrap_or_default();
+                let version = row.remove("version").unwrap_or_default();
+                Some(Package  { name: name, id: id, version: version, source: source })
+            })
+            .collect()
     }
 
-    fn upgrade(&self, package: &Package) -> Result<PackageUpgrade> {
-        let _output = Command::new(self.exe)
+    fn upgrade(&self, package: &Package) -> Result<Package> {
+        let output = Command::new(self.exe)
             .args([
                 "upgrade",
                 "--id",
                 &package.id,
+                "--source",
+                &package.source,
                 "--silent",
                 "--accept-package-agreements",
                 "--accept-source-agreements",
             ])
             .output()?;
 
-        // TODO: parse output to determine new version
-        Ok(PackageUpgrade {
-            from: package.clone(),
-            to: package.clone(),
+        let stdout = decode_utf16le(&output.stdout);
+        if !stdout.contains("Successfully installed") {
+            return Err(anyhow!("upgrade failed for {}", package.id));
+        }
+
+        let version = stdout
+            .lines()
+            .find_map(|line| line.split("Version ").nth(1))
+            .unwrap_or_default()
+            .trim()
+            .to_string();
+
+        Ok(Package {
+            name: package.name.clone(),
+            id: package.id.clone(),
+            source: package.source.clone(),
+            version: version
         })
     }
 }
