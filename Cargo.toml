@@ -1,0 +1,36 @@
+[package]
+name = "winget-autoupgrade"
+version = "0.1.0"
+edition = "2024"
+authors = ["Adam Schubert <adam.schubert@sg1-game.net>"]
+description = "Winget auto-updater"
+license = "GPL"
+repository = "https://github.com/Salamek/winget-autoupgrade"
+
+[dependencies]
+# Logging
+log = "0.4"
+simplelog = "0.12"        # rotating file + terminal logging
+
+# CLI execution
+anyhow = "1.0"            # error handling
+serde = { version = "1.0", features = ["derive"] } # for structured JSON logs
+serde_json = "1.0"
+
+toml = "0.7"
+
+# Windows-only: toast notifications & WinRT APIs
+windows = { version = "0.48", features = ["Win32_UI_Notifications"], optional = true  }
+
+# Optional: command-line parsing if you want arguments
+clap = { version = "4.5", features = ["derive"] }
+
+[dev-dependencies]
+# Testing
+assert_cmd = "2.0"
+predicates = "2.1"
+
+[features]
+# Feature flags for platform-specific code
+default = []
+windows-notifications = ["windows"]
