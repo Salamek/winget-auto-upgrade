@@ -17,10 +17,20 @@ pub struct PackageUpgrade {
     pub to: Package,
 }
 
+#[derive(Debug, Default)]
+pub struct UpgradeOptions {
+    pub custom_args: Option<String>,
+    pub override_args: Option<String>,
+    pub force_architecture: Option<String>,
+    pub force_locale: Option<String>,
+    pub ignore_security_hash: bool,
+    pub skip_dependencies: bool,
+}
+
 pub trait PackageManager {
     fn list_upgrades(&self) -> Vec<PackageUpgrade>;
     fn list(&self) -> Vec<Package>;
-    fn upgrade(&self, package: &Package) -> Result<Package>;
+    fn upgrade(&self, package: &Package, options: &UpgradeOptions) -> Result<Package>;
 }
 
 #[cfg(target_os = "windows")]
@@ -259,19 +269,32 @@ impl PackageManager for Winget {
             .collect()
     }
 
-    fn upgrade(&self, package: &Package) -> Result<Package> {
-        let output = Command::new(&self.exe)
-            .args([
-                "upgrade",
-                "--id",
-                &package.id,
-                "--source",
-                &package.source,
-                "--silent",
-                "--accept-package-agreements",
-                "--accept-source-agreements",
-            ])
-            .output()?;
+    fn upgrade(&self, package: &Package, options: &UpgradeOptions) -> Result<Package> {
+        let mut args = vec![
+            "upgrade".to_string(),
+            "--id".to_string(),         package.id.clone(),
+            "--source".to_string(),     package.source.clone(),
+            "--silent".to_string(),
+            "--accept-package-agreements".to_string(),
+            "--accept-source-agreements".to_string(),
+        ];
+
+        if let Some(arch) = &options.force_architecture {
+            args.extend(["--architecture".to_string(), arch.clone()]);
+        }
+        if let Some(locale) = &options.force_locale {
+            args.extend(["--locale".to_string(), locale.clone()]);
+        }
+        if let Some(override_args) = &options.override_args {
+            args.extend(["--override".to_string(), override_args.clone()]);
+        }
+        if let Some(custom_args) = &options.custom_args {
+            args.extend(["--custom".to_string(), custom_args.clone()]);
+        }
+        if options.ignore_security_hash { args.push("--ignore-security-hash".to_string()); }
+        if options.skip_dependencies    { args.push("--skip-dependencies".to_string()); }
+
+        let output = Command::new(&self.exe).args(&args).output()?;
 
         let stdout = decode_utf16le(&output.stdout);
         if !stdout.contains("Successfully installed") {

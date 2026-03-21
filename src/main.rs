@@ -5,6 +5,7 @@ mod updater;
 mod notification;
 mod package_manager;
 mod system;
+mod hook;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = config::load_config("config.toml")?;

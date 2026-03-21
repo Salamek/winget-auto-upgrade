@@ -8,26 +8,20 @@ pub enum Scope {
     User,
     Machine,
     #[default]
-    None,
-}
-
-
-impl Scope {
-    fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "user"     => Some(Self::User),
-            "machine" => Some(Self::Machine),
-            "none"    => Some(Self::None),
-            _         => Option::None,
-        }
-    }
+    All,
 }
 
 #[derive(Debug, Clone)]
 pub struct PackageEntry {
     pub id: String,
     pub source: String,
-    pub scope: Scope
+    pub scope: Scope,
+    pub custom_args: Option<String>,
+    pub override_args: Option<String>,
+    pub force_architecture: Option<String>,
+    pub force_locale: Option<String>,
+    pub ignore_security_hash: bool,
+    pub skip_depedencies: bool
 }
 
 #[derive(Deserialize)]
@@ -35,6 +29,12 @@ struct RawPackageEntry {
     id: String,
     source: Option<String>,
     scope: Option<Scope>,
+    custom_args: Option<String>,
+    override_args: Option<String>,
+    force_architecture: Option<String>,
+    force_locale: Option<String>,
+    ignore_security_hash: Option<bool>,
+    skip_depedencies: Option<bool>
 }
 
 #[derive(Deserialize)]
@@ -67,7 +67,13 @@ pub fn load(url: &str, default_source: &str) -> Result<Vec<PackageEntry>> {
         .map(|e| PackageEntry {
             id: e.id,
             source: e.source.unwrap_or_else(|| default_source.to_string()),
-            scope: e.scope.unwrap_or(Scope::default()),
+            scope: e.scope.unwrap_or_else(|| Scope::default()),
+            custom_args: e.custom_args,
+            override_args: e.override_args,
+            force_architecture: e.force_architecture,
+            force_locale: e.force_locale,
+            ignore_security_hash: e.ignore_security_hash.unwrap_or(false),
+            skip_depedencies: e.skip_depedencies.unwrap_or(false)
         })
         .collect())
 }

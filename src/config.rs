@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use std::fs;
+use std::path::PathBuf;
 
 #[derive(Debug, Deserialize, Default, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -12,16 +13,7 @@ pub enum NotificationLevel {
 }
 
 impl NotificationLevel {
-    fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "all"     => Some(Self::All),
-            "success" => Some(Self::Success),
-            "error"   => Some(Self::Error),
-            "none"    => Some(Self::None),
-            _         => Option::None,
-        }
-    }
-
+    #[cfg(target_os = "windows")]
     fn from_wau_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "Full"     => Some(Self::All),
@@ -39,6 +31,10 @@ pub struct Config {
     pub default_source: String,
     pub allow_list_path: String,
     pub block_list_path: String,
+    pub override_list_path: String,
+    pub pre_update_hook: Option<PathBuf>,
+    pub post_update_hook: Option<PathBuf>,
+    pub hook_args_template: String,
     pub skip_unknown_version: bool,
     pub run_on_metered_connection: bool,
     pub notification_level: NotificationLevel,
@@ -51,6 +47,10 @@ impl Default for Config {
             default_source: "winget".to_string(),
             allow_list_path: "file://allow_list.toml".to_string(),
             block_list_path: "file://block_list.toml".to_string(),
+            override_list_path: "file://override_list.toml".to_string(),
+            pre_update_hook: None,
+            post_update_hook: None,
+            hook_args_template: "{id} {source} {version} {available_version}".to_string(),
             skip_unknown_version: true,
             run_on_metered_connection: false,
             notification_level: NotificationLevel::default(),
@@ -64,6 +64,10 @@ struct RawConfig {
     default_source: Option<String>,
     allow_list_path: Option<String>,
     block_list_path: Option<String>,
+    override_list_path: Option<String>,
+    pre_update_hook: Option<PathBuf>,
+    post_update_hook: Option<PathBuf>,
+    hook_args_template: Option<String>,
     skip_unknown_version: Option<bool>,
     run_on_metered_connection: Option<bool>,
     notification_level: Option<NotificationLevel>,
@@ -71,12 +75,17 @@ struct RawConfig {
 
 impl RawConfig {
     // Apply other on top of self, Some values in other win, None values keep self
+    #[cfg(target_os = "windows")]
     fn override_with(self, other: RawConfig) -> RawConfig {
         RawConfig {
             log_path:                 other.log_path.or(self.log_path),
             default_source:           other.default_source.or(self.default_source),
             allow_list_path:          other.allow_list_path.or(self.allow_list_path),
             block_list_path:          other.block_list_path.or(self.block_list_path),
+            override_list_path:       other.override_list_path.or(self.override_list_path),
+            pre_update_hook:          other.pre_update_hook.or(self.pre_update_hook),
+            post_update_hook:         other.post_update_hook.or(self.post_update_hook),
+            hook_args_template:       other.hook_args_template.or(self.hook_args_template),
             skip_unknown_version:     other.skip_unknown_version.or(self.skip_unknown_version),
             run_on_metered_connection: other.run_on_metered_connection.or(self.run_on_metered_connection),
             notification_level:       other.notification_level.or(self.notification_level),
@@ -90,6 +99,10 @@ impl RawConfig {
             default_source:           self.default_source.unwrap_or(defaults.default_source),
             allow_list_path:          self.allow_list_path.unwrap_or(defaults.allow_list_path),
             block_list_path:          self.block_list_path.unwrap_or(defaults.block_list_path),
+            override_list_path:       self.override_list_path.unwrap_or(defaults.override_list_path),
+            pre_update_hook:          self.pre_update_hook.or(defaults.pre_update_hook),
+            post_update_hook:         self.post_update_hook.or(defaults.post_update_hook),
+            hook_args_template:       self.hook_args_template.unwrap_or(defaults.hook_args_template),
             skip_unknown_version:     self.skip_unknown_version.unwrap_or(defaults.skip_unknown_version),
             run_on_metered_connection: self.run_on_metered_connection.unwrap_or(defaults.run_on_metered_connection),
             notification_level:       self.notification_level.unwrap_or(defaults.notification_level),
