@@ -207,7 +207,7 @@ fn parse_table(data: &[u8]) -> Vec<HashMap<String, String>> {
             i += 1;
         }
     }
-    col_starts.push(header_chars.len() + 1);
+    col_starts.push(usize::MAX); // last column: read to end of each data line
 
     // Slice a line into column values by char ranges.
     let extract = |line: &str| -> Vec<String> {
@@ -224,13 +224,11 @@ fn parse_table(data: &[u8]) -> Vec<HashMap<String, String>> {
             })
             .collect()
     };
-    dbg!(&header_line);
+
     let headers: Vec<String> = extract(header_line)
         .into_iter()
         .map(|h| h.to_lowercase())
         .collect();
-
-    dbg!(&headers);
 
     let mut rows = vec![];
     for line in &lines[sep_idx + 1..] {
@@ -278,7 +276,6 @@ impl PackageManager for Winget {
                 }
                 let name = row.remove("name").unwrap_or_default();
                 let source = row.remove("source").unwrap_or_default();
-                dbg!(&source);
                 let version = row.remove("version").unwrap_or_default();
                 let available = row.remove("available").unwrap_or_default();
                 Some(PackageUpgrade {
