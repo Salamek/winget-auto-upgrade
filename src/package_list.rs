@@ -2,16 +2,39 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::fs;
 
+#[derive(Debug, Deserialize, Default, PartialEq, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum Scope {
+    User,
+    Machine,
+    #[default]
+    None,
+}
+
+
+impl Scope {
+    fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "user"     => Some(Self::User),
+            "machine" => Some(Self::Machine),
+            "none"    => Some(Self::None),
+            _         => Option::None,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PackageEntry {
     pub id: String,
     pub source: String,
+    pub scope: Scope
 }
 
 #[derive(Deserialize)]
 struct RawPackageEntry {
     id: String,
     source: Option<String>,
+    scope: Option<Scope>,
 }
 
 #[derive(Deserialize)]
@@ -44,6 +67,7 @@ pub fn load(url: &str, default_source: &str) -> Result<Vec<PackageEntry>> {
         .map(|e| PackageEntry {
             id: e.id,
             source: e.source.unwrap_or_else(|| default_source.to_string()),
+            scope: e.scope.unwrap_or(Scope::default()),
         })
         .collect())
 }
