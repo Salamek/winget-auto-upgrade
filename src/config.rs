@@ -135,7 +135,7 @@ fn load_wau_registry_layer() -> RawConfig {
 }
 
 #[cfg(target_os = "windows")]
-fn load_wau_registry_layer() -> RawConfig {
+fn load_wau_policy_registry_layer() -> RawConfig {
     use winreg::RegKey;
     use winreg::enums::HKEY_LOCAL_MACHINE;
 
