@@ -11,6 +11,28 @@ pub enum NotificationLevel {
     None,
 }
 
+impl NotificationLevel {
+    fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "all"     => Some(Self::All),
+            "success" => Some(Self::Success),
+            "error"   => Some(Self::Error),
+            "none"    => Some(Self::None),
+            _         => Option::None,
+        }
+    }
+
+    fn from_wau_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "Full"     => Some(Self::All),
+            "Success only" => Some(Self::Success),
+            "Errors only"   => Some(Self::Error),
+            "None"    => Some(Self::None),
+            _         => Option::None,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Config {
     pub log_path: String,
@@ -47,21 +69,98 @@ struct RawConfig {
     notification_level: Option<NotificationLevel>,
 }
 
+impl RawConfig {
+    // Apply other on top of self, Some values in other win, None values keep self
+    fn override_with(self, other: RawConfig) -> RawConfig {
+        RawConfig {
+            log_path:                 other.log_path.or(self.log_path),
+            default_source:           other.default_source.or(self.default_source),
+            allow_list_path:          other.allow_list_path.or(self.allow_list_path),
+            block_list_path:          other.block_list_path.or(self.block_list_path),
+            skip_unknown_version:     other.skip_unknown_version.or(self.skip_unknown_version),
+            run_on_metered_connection: other.run_on_metered_connection.or(self.run_on_metered_connection),
+            notification_level:       other.notification_level.or(self.notification_level),
+        }
+    }
+
+    fn into_config(self) -> Config {
+        let defaults = Config::default();
+        Config {
+            log_path:                 self.log_path.unwrap_or(defaults.log_path),
+            default_source:           self.default_source.unwrap_or(defaults.default_source),
+            allow_list_path:          self.allow_list_path.unwrap_or(defaults.allow_list_path),
+            block_list_path:          self.block_list_path.unwrap_or(defaults.block_list_path),
+            skip_unknown_version:     self.skip_unknown_version.unwrap_or(defaults.skip_unknown_version),
+            run_on_metered_connection: self.run_on_metered_connection.unwrap_or(defaults.run_on_metered_connection),
+            notification_level:       self.notification_level.unwrap_or(defaults.notification_level),
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn load_wau_registry_layer() -> RawConfig {
+    use winreg::RegKey;
+    use winreg::enums::HKEY_LOCAL_MACHINE;
+
+    key_path = "SOFTWARE\\Romanitho\\Winget-AutoUpdate";
+
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let key = match hklm.open_subkey(key_path) {
+        Ok(k) => k,
+        Err(_) => return RawConfig::default(),
+    };
+
+    let get_string = |name: &str| -> Option<String> { key.get_value(name).ok() };
+    let get_bool   = |name: &str| -> Option<bool>   { key.get_value::<u32, _>(name).ok().map(|v| v != 0) };
+
+    RawConfig {
+        default_source:           get_string("WAU_WingetSourceCustom"),
+        run_on_metered_connection: !get_bool("WAU_DoNotRunOnMetered"),
+        notification_level:       get_string("WAU_NotificationLevel")
+                                    .and_then(|s| NotificationLevel::from_wau_str(&s)),
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn load_wau_registry_layer() -> RawConfig {
+    use winreg::RegKey;
+    use winreg::enums::HKEY_LOCAL_MACHINE;
+
+    key_path = "Software\\Policies\\Romanitho\\Winget-AutoUpdate";
+
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let key = match hklm.open_subkey(key_path) {
+        Ok(k) => k,
+        Err(_) => return RawConfig::default(),
+    };
+
+    let get_string = |name: &str| -> Option<String> { key.get_value(name).ok() };
+    let get_bool   = |name: &str| -> Option<bool>   { key.get_value::<u32, _>(name).ok().map(|v| v != 0) };
+
+    RawConfig {
+        default_source:           get_string("WAU_WingetSourceCustom"),
+        run_on_metered_connection: !get_bool("WAU_DoNotRunOnMetered"),
+        notification_level:       get_string("WAU_NotificationLevel")
+                                    .and_then(|s| NotificationLevel::from_wau_str(&s)),
+    }
+}
+
 pub fn load_config(path: &str) -> anyhow::Result<Config> {
+    // Layer 1: config.toml
     let content = fs::read_to_string(path).unwrap_or_default();
-    let raw: RawConfig = if content.trim().is_empty() {
+    let file_layer: RawConfig = if content.trim().is_empty() {
         RawConfig::default()
     } else {
         toml::from_str(&content)?
     };
-    let defaults = Config::default();
-    Ok(Config {
-        log_path:                raw.log_path.unwrap_or(defaults.log_path),
-        default_source:          raw.default_source.unwrap_or(defaults.default_source),
-        allow_list_path:         raw.allow_list_path.unwrap_or(defaults.allow_list_path),
-        block_list_path:         raw.block_list_path.unwrap_or(defaults.block_list_path),
-        skip_unknown_version:    raw.skip_unknown_version.unwrap_or(defaults.skip_unknown_version),
-        run_on_metered_connection: raw.run_on_metered_connection.unwrap_or(defaults.run_on_metered_connection),
-        notification_level:      raw.notification_level.unwrap_or(defaults.notification_level),
-    })
+
+    // Layer 2 -> 3: Windows registry (only on Windows)
+    #[cfg(target_os = "windows")]
+    let file_layer = {
+        let wau     = load_wau_registry_layer();
+        let policy  = load_wau_policy_registry_layer();
+        file_layer.override_with(wau).override_with(policy)
+    };
+
+    Ok(file_layer.into_config())
 }
