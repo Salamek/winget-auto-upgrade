@@ -32,19 +32,19 @@ impl Notifier for StubNotifier {
     }
 }
 
-#[cfg(all(target_os = "windows", feature = "windows-notifications"))]
+#[cfg(target_os = "windows")]
 pub struct WindowsNotifier {
     level: NotificationLevel,
 }
 
-#[cfg(all(target_os = "windows", feature = "windows-notifications"))]
+#[cfg(target_os = "windows")]
 impl WindowsNotifier {
     pub fn new(level: NotificationLevel) -> Self {
         WindowsNotifier { level }
     }
 }
 
-#[cfg(all(target_os = "windows", feature = "windows-notifications"))]
+#[cfg(target_os = "windows")]
 impl Notifier for WindowsNotifier {
     fn info(&self, title: &str, message: &str) {
         if !matches!(self.level, NotificationLevel::All | NotificationLevel::Success) {

@@ -1,13 +1,20 @@
 use crate::package_manager::{PackageManager};
 use crate::notification::Notifier;
 use crate::package_list;
+use crate::system::System;
 use log::{info, warn};
 
-pub fn run_update<P: PackageManager, N: Notifier>(
+pub fn run_update<P: PackageManager, N: Notifier, S: System>(
     pm: P,
     notifier: N,
+    sys: S,
     config: &crate::config::Config,
 ) -> anyhow::Result<()> {
+
+    if sys.is_metered_connection() && !config.run_on_metered_connection {
+        info!("Metered connection detected and running is not permitted, skipping updates.");
+        return Ok(());
+    }
 
     let allow_list = package_list::load(&config.allow_list_path, &config.default_source)?;
     let block_list = package_list::load(&config.block_list_path, &config.default_source)?;

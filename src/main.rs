@@ -4,6 +4,7 @@ mod logging;
 mod updater;
 mod notification;
 mod package_manager;
+mod system;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = config::load_config("config.toml")?;
@@ -15,8 +16,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(not(target_os = "windows"))]
     let notifier = notification::StubNotifier::new(config.notification_level.clone());
 
+    #[cfg(target_os = "windows")]
+    let sys = system::WindowsSystem::new();
+
+    #[cfg(not(target_os = "windows"))]
+    let sys = system::StubSystem::new();
+
     let pm = package_manager::Winget::new();
 
-    updater::run_update(pm, notifier, &config)?;
+    updater::run_update(pm, notifier, sys, &config)?;
     Ok(())
 }
