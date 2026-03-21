@@ -1,0 +1,18 @@
+# Block list — packages listed here are never upgraded, regardless of the allow list.
+#
+# scope values:
+#   "all"     — applies in both user and SYSTEM context (default)
+#   "machine" — applies only when running as SYSTEM
+#   "user"    — applies only when running as a regular user
+
+[[packages]]
+id = "Microsoft.Teams"
+source = "winget"   # block Teams updates entirely
+
+[[packages]]
+id = "Company.LegacyApp"
+scope = "user"   # block only in user context, allow SYSTEM to upgrade it
+
+[[packages]]
+id = "Some.BrokenPackage"
+# Temporarily blocked due to a broken installer in the latest release

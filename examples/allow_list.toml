@@ -1,0 +1,27 @@
+# Allow list — only packages listed here will be upgraded.
+# If this file is empty or contains no [[packages]] entries, all packages are eligible.
+#
+# scope values:
+#   "all"     — applies in both user and SYSTEM context (default)
+#   "machine" — applies only when running as SYSTEM
+#   "user"    — applies only when running as a regular user
+
+[[packages]]
+id = "Mozilla.Firefox"
+source = "winget"
+
+[[packages]]
+id = "7zip.7zip"
+source = "winget"
+
+[[packages]]
+id = "VideoLAN.VLC"
+# source omitted — falls back to default_source from config
+
+[[packages]]
+id = "Microsoft.VisualStudioCode"
+scope = "user"   # only upgrade in user context
+
+[[packages]]
+id = "Microsoft.Teams"
+scope = "machine"   # only upgrade when running as SYSTEM

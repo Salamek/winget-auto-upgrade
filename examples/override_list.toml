@@ -1,0 +1,34 @@
+# Override list — per-package upgrade options.
+# The first entry matching the package identity and current scope is used.
+# Packages not listed here are upgraded with default options.
+#
+# scope values:
+#   "all"     — applies in both user and SYSTEM context (default)
+#   "machine" — applies only when running as SYSTEM
+#   "user"    — applies only when running as a regular user
+
+[[packages]]
+id = "Mozilla.Firefox"
+source = "winget"
+scope = "machine"
+force_architecture = "x64"
+force_locale = "en-US"
+
+[[packages]]
+id = "Microsoft.Teams"
+source = "winget"
+# Close Teams before upgrading via pre_update_hook, installer runs silently
+override_args = "/silent /norestart"
+
+[[packages]]
+id = "Company.CustomApp"
+source = "winget"
+scope = "machine"
+custom_args = "--install-dir C:\\Apps\\Custom"
+ignore_security_hash = true   # use with caution
+skip_dependencies = true
+
+[[packages]]
+id = "Some.App"
+source = "winget"
+force_locale = "cs-CZ"   # force Czech locale

@@ -1,0 +1,33 @@
+# Path to the log file
+log_path = "winget-update.log"
+
+# Default package source used when a package list entry omits the source field
+default_source = "winget"
+
+# Package lists — file:// for local paths, https:// for remote URLs
+allow_list_path    = "file://allow_list.toml"
+block_list_path    = "file://block_list.toml"
+override_list_path = "file://override_list.toml"
+
+# Skip packages whose installed version is reported as "Unknown" by winget
+skip_unknown_version = true
+
+# Set to true to allow updates to run on metered (cellular/limited) connections
+run_on_metered_connection = false
+
+# Notification verbosity
+# "all"     — show notifications for both successes and failures (default)
+# "success" — only notify on successful upgrades
+# "error"   — only notify on failures
+# "none"    — no notifications
+notification_level = "all"
+
+# Optional: executable to run before each package upgrade
+# pre_update_hook = "C:\\Scripts\\pre-update.bat"
+
+# Optional: executable to run after each successful package upgrade
+# post_update_hook = "C:\\Scripts\\post-update.ps1"
+
+# Arguments passed to the hook executables.
+# Supported variables: {id}, {name}, {source}, {scope}, {version}, {available_version}
+hook_args_template = "{id} {source} {version} {available_version}"
