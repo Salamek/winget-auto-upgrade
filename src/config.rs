@@ -115,7 +115,7 @@ fn load_wau_registry_layer() -> RawConfig {
     use winreg::RegKey;
     use winreg::enums::HKEY_LOCAL_MACHINE;
 
-    key_path = "SOFTWARE\\Romanitho\\Winget-AutoUpdate";
+    let key_path = "SOFTWARE\\Romanitho\\Winget-AutoUpdate";
 
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     let key = match hklm.open_subkey(key_path) {
@@ -128,9 +128,10 @@ fn load_wau_registry_layer() -> RawConfig {
 
     RawConfig {
         default_source:           get_string("WAU_WingetSourceCustom"),
-        run_on_metered_connection: !get_bool("WAU_DoNotRunOnMetered"),
+        run_on_metered_connection: get_bool("WAU_DoNotRunOnMetered").map(|v| !v),
         notification_level:       get_string("WAU_NotificationLevel")
                                     .and_then(|s| NotificationLevel::from_wau_str(&s)),
+        ..RawConfig::default()
     }
 }
 
@@ -139,7 +140,7 @@ fn load_wau_policy_registry_layer() -> RawConfig {
     use winreg::RegKey;
     use winreg::enums::HKEY_LOCAL_MACHINE;
 
-    key_path = "Software\\Policies\\Romanitho\\Winget-AutoUpdate";
+    let key_path = "Software\\Policies\\Romanitho\\Winget-AutoUpdate";
 
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     let key = match hklm.open_subkey(key_path) {
@@ -152,9 +153,10 @@ fn load_wau_policy_registry_layer() -> RawConfig {
 
     RawConfig {
         default_source:           get_string("WAU_WingetSourceCustom"),
-        run_on_metered_connection: !get_bool("WAU_DoNotRunOnMetered"),
+        run_on_metered_connection: get_bool("WAU_DoNotRunOnMetered").map(|v| !v),
         notification_level:       get_string("WAU_NotificationLevel")
                                     .and_then(|s| NotificationLevel::from_wau_str(&s)),
+        ..RawConfig::default()
     }
 }
 

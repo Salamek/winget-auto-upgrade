@@ -26,7 +26,8 @@ clap = { version = "4.5", features = ["derive"] }
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
 windows = { version = "0.48", features = [
-    "Win32_UI_Notifications",
+    "UI_Notifications",
+    "Data_Xml_Dom",
     "Networking_Connectivity",
     "Win32_Foundation",
     "Win32_Security",

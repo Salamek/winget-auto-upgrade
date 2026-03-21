@@ -51,15 +51,15 @@ impl Notifier for WindowsNotifier {
             return;
         }
         use windows::UI::Notifications::*;
-        use windows::Data::Xml::Dom::*;
+        use windows::core::HSTRING;
 
         let toast_xml = ToastNotificationManager::GetTemplateContent(ToastTemplateType::ToastText02)
             .expect("Failed to create toast XML");
-        let nodes = toast_xml.GetElementsByTagName("text").unwrap();
-        nodes.Item(0).unwrap().AppendChild(&toast_xml.CreateTextNode(title).unwrap()).unwrap();
-        nodes.Item(1).unwrap().AppendChild(&toast_xml.CreateTextNode(message).unwrap()).unwrap();
+        let nodes = toast_xml.GetElementsByTagName(&HSTRING::from("text")).unwrap();
+        nodes.Item(0).unwrap().AppendChild(&toast_xml.CreateTextNode(&HSTRING::from(title)).unwrap()).unwrap();
+        nodes.Item(1).unwrap().AppendChild(&toast_xml.CreateTextNode(&HSTRING::from(message)).unwrap()).unwrap();
 
-        let notifier = ToastNotificationManager::CreateToastNotifierWithId("WingetAutoupgrade").unwrap();
+        let notifier = ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from("WingetAutoupgrade")).unwrap();
         let toast = ToastNotification::CreateToastNotification(&toast_xml).unwrap();
         notifier.Show(&toast).unwrap();
     }

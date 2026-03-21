@@ -100,18 +100,52 @@ fn winget_exe() -> String {
     "winget-stub/winget.exe".to_string()
 }
 
-// Decode raw bytes from winget output (UTF-16LE).
-fn decode_utf16le(data: &[u8]) -> String {
-    let words: Vec<u16> = data
-        .chunks_exact(2)
-        .map(|b| u16::from_le_bytes([b[0], b[1]]))
-        .collect();
-    String::from_utf16_lossy(&words).to_owned()
+// Decode raw bytes from winget output.
+// Winget writes UTF-16LE (with BOM) when talking to a console, but switches to
+// UTF-8 when stdout is redirected to a pipe (i.e. Command::output()).
+fn decode_output(data: &[u8]) -> String {
+    if data.starts_with(&[0xFF, 0xFE]) {
+        // UTF-16LE with BOM
+        let words: Vec<u16> = data[2..]
+            .chunks_exact(2)
+            .map(|b| u16::from_le_bytes([b[0], b[1]]))
+            .collect();
+        String::from_utf16_lossy(&words).to_owned()
+    } else {
+        // UTF-8 (piped output)
+        String::from_utf8_lossy(data).into_owned()
+    }
+}
+
+// Simulate terminal carriage-return behaviour: \r resets to the start of the
+// current line so the next characters overwrite what was written before.
+// This removes winget's spinner lines which use \r to overwrite themselves.
+fn apply_carriage_returns(text: &str) -> String {
+    // Normalize \r\n → \n first so actual line endings don't clear their own content.
+    // After that, lone \r simulates terminal overwrite (spinner lines reset to col 0).
+    let text = text.replace("\r\n", "\n");
+    let mut lines: Vec<String> = Vec::new();
+    let mut current = String::new();
+    for c in text.chars() {
+        match c {
+            '\r' => current.clear(),
+            '\n' => {
+                lines.push(current.clone());
+                current.clear();
+            }
+            _ => current.push(c),
+        }
+    }
+    if !current.is_empty() {
+        lines.push(current);
+    }
+    lines.join("\n")
 }
 
 // Strip ANSI escape sequences, C0/C1 control chars, and Unicode box-drawing /
 // block elements that winget emits for its progress bar.
 fn strip_garbage(text: String) -> String {
+    let text = apply_carriage_returns(&text);
     let mut out = String::with_capacity(text.len());
     let mut chars = text.chars().peekable();
     while let Some(c) = chars.next() {
@@ -127,8 +161,10 @@ fn strip_garbage(text: String) -> String {
             }
             // C0 control chars (keep \n \t space), C1 control chars
             '\x00'..='\x08' | '\x0B'..='\x1F' | '\x7F'..='\u{9F}' => {}
-            // Box-drawing (U+2500–U+257F) and block elements (U+2580–U+25FF)
-            '\u{2500}'..='\u{25FF}' => {}
+            // Box-drawing horizontal line (U+2500 ─) used as table separator → keep as ASCII dash
+            '\u{2500}' => out.push('-'),
+            // Other box-drawing (U+2501–U+257F) and block elements (U+2580–U+25FF) — drop
+            '\u{2501}'..='\u{25FF}' => {}
             _ => out.push(c),
         }
     }
@@ -138,9 +174,9 @@ fn strip_garbage(text: String) -> String {
 // Parse a fixed-width winget table from raw stdout bytes.
 // Returns one HashMap<column_name, value> per data row (column names are lowercased).
 fn parse_table(data: &[u8]) -> Vec<HashMap<String, String>> {
-    let text = strip_garbage(decode_utf16le(data));
-    let lines: Vec<&str> = text.lines().collect();
+    let text = strip_garbage(decode_output(data));
 
+    let lines: Vec<&str> = text.lines().collect();
     // Find the separator line: trimmed content is all dashes (10+)
     let sep_idx = match lines.iter().position(|l| {
         let t = l.trim();
@@ -155,6 +191,7 @@ fn parse_table(data: &[u8]) -> Vec<HashMap<String, String>> {
     // Determine column start positions (char indices) from the header.
     // A gap of 2+ consecutive spaces marks a column boundary.
     let header_chars: Vec<char> = header_line.chars().collect();
+
     let mut col_starts: Vec<usize> = vec![0];
     let mut i = 0;
     while i < header_chars.len() {
@@ -175,20 +212,25 @@ fn parse_table(data: &[u8]) -> Vec<HashMap<String, String>> {
     // Slice a line into column values by char ranges.
     let extract = |line: &str| -> Vec<String> {
         let chars: Vec<char> = line.chars().collect();
-        col_starts.windows(2).map(|w| {
-            let (s, e) = (w[0], w[1].min(chars.len()));
-            if s >= chars.len() {
-                String::new()
-            } else {
-                chars[s..e].iter().collect::<String>().trim().to_string()
-            }
-        }).collect()
+        col_starts
+            .windows(2)
+            .map(|w| {
+                let (s, e) = (w[0], w[1].min(chars.len()));
+                if s >= chars.len() {
+                    String::new()
+                } else {
+                    chars[s..e].iter().collect::<String>().trim().to_string()
+                }
+            })
+            .collect()
     };
-
+    dbg!(&header_line);
     let headers: Vec<String> = extract(header_line)
         .into_iter()
         .map(|h| h.to_lowercase())
         .collect();
+
+    dbg!(&headers);
 
     let mut rows = vec![];
     for line in &lines[sep_idx + 1..] {
@@ -201,10 +243,7 @@ fn parse_table(data: &[u8]) -> Vec<HashMap<String, String>> {
             break;
         }
         let cols = extract(line);
-        let row: HashMap<String, String> = headers.iter()
-            .cloned()
-            .zip(cols)
-            .collect();
+        let row: HashMap<String, String> = headers.iter().cloned().zip(cols).collect();
         rows.push(row);
     }
     rows
@@ -234,14 +273,27 @@ impl PackageManager for Winget {
             .into_iter()
             .filter_map(|mut row| {
                 let id = row.remove("id")?;
-                if id.is_empty() { return None; }
-                let name    = row.remove("name").unwrap_or_default();
-                let source  = row.remove("source").unwrap_or_default();
+                if id.is_empty() {
+                    return None;
+                }
+                let name = row.remove("name").unwrap_or_default();
+                let source = row.remove("source").unwrap_or_default();
+                dbg!(&source);
                 let version = row.remove("version").unwrap_or_default();
                 let available = row.remove("available").unwrap_or_default();
                 Some(PackageUpgrade {
-                    from: Package { name: name.clone(), id: id.clone(), version, source: source.clone() },
-                    to:   Package { name, id, version: available, source },
+                    from: Package {
+                        name: name.clone(),
+                        id: id.clone(),
+                        version,
+                        source: source.clone(),
+                    },
+                    to: Package {
+                        name,
+                        id,
+                        version: available,
+                        source,
+                    },
                 })
             })
             .collect()
@@ -260,11 +312,18 @@ impl PackageManager for Winget {
             .into_iter()
             .filter_map(|mut row| {
                 let id = row.remove("id")?;
-                if id.is_empty() { return None; }
-                let name    = row.remove("name").unwrap_or_default();
-                let source  = row.remove("source").unwrap_or_default();
+                if id.is_empty() {
+                    return None;
+                }
+                let name = row.remove("name").unwrap_or_default();
+                let source = row.remove("source").unwrap_or_default();
                 let version = row.remove("version").unwrap_or_default();
-                Some(Package  { name: name, id: id, version: version, source: source })
+                Some(Package {
+                    name: name,
+                    id: id,
+                    version: version,
+                    source: source,
+                })
             })
             .collect()
     }
@@ -272,8 +331,10 @@ impl PackageManager for Winget {
     fn upgrade(&self, package: &Package, options: &UpgradeOptions) -> Result<Package> {
         let mut args = vec![
             "upgrade".to_string(),
-            "--id".to_string(),         package.id.clone(),
-            "--source".to_string(),     package.source.clone(),
+            "--id".to_string(),
+            package.id.clone(),
+            "--source".to_string(),
+            package.source.clone(),
             "--silent".to_string(),
             "--accept-package-agreements".to_string(),
             "--accept-source-agreements".to_string(),
@@ -291,12 +352,16 @@ impl PackageManager for Winget {
         if let Some(custom_args) = &options.custom_args {
             args.extend(["--custom".to_string(), custom_args.clone()]);
         }
-        if options.ignore_security_hash { args.push("--ignore-security-hash".to_string()); }
-        if options.skip_dependencies    { args.push("--skip-dependencies".to_string()); }
+        if options.ignore_security_hash {
+            args.push("--ignore-security-hash".to_string());
+        }
+        if options.skip_dependencies {
+            args.push("--skip-dependencies".to_string());
+        }
 
         let output = Command::new(&self.exe).args(&args).output()?;
 
-        let stdout = decode_utf16le(&output.stdout);
+        let stdout = decode_output(&output.stdout);
         if !stdout.contains("Successfully installed") {
             return Err(anyhow!("upgrade failed for {}", package.id));
         }
@@ -312,7 +377,7 @@ impl PackageManager for Winget {
             name: package.name.clone(),
             id: package.id.clone(),
             source: package.source.clone(),
-            version: version
+            version: version,
         })
     }
 }

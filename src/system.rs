@@ -42,7 +42,7 @@ impl System for WindowsSystem {
 
         unsafe {
             let mut token = HANDLE::default();
-            if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token).is_err() {
+            if !OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token).as_bool() {
                 return false;
             }
 
@@ -59,7 +59,7 @@ impl System for WindowsSystem {
             );
             let _ = CloseHandle(token);
 
-            if ok.is_err() {
+            if !ok.as_bool() {
                 return false;
             }
 
