@@ -11,11 +11,12 @@ param(
     [switch]$Uninstall
 )
 
-$exe = Join-Path $PSScriptRoot 'winget-auto-upgrade.exe'
+$exe      = Join-Path $PSScriptRoot 'winget-auto-upgrade.exe'
+$taskPath = '\winget-auto-upgrade\'
 
 if ($Uninstall) {
-    Unregister-ScheduledTask -TaskName 'winget-auto-upgrade'      -Confirm:$false -ErrorAction SilentlyContinue
-    Unregister-ScheduledTask -TaskName 'winget-auto-upgrade-user' -Confirm:$false -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName 'System' -TaskPath $taskPath -Confirm:$false -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName 'User'   -TaskPath $taskPath -Confirm:$false -ErrorAction SilentlyContinue
 } else {
     $action   = New-ScheduledTaskAction -Execute $exe
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew
@@ -26,13 +27,13 @@ if ($Uninstall) {
         (New-ScheduledTaskTrigger -AtLogOn)
     )
     $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -RunLevel Highest
-    Register-ScheduledTask -TaskName 'winget-auto-upgrade' `
+    Register-ScheduledTask -TaskName 'System' -TaskPath $taskPath `
         -Action $action -Trigger $triggers -Principal $principal -Settings $settings -Force | Out-Null
 
     # User context — trigger-less, started explicitly by the SYSTEM task at end of its run.
     # Runs as Authenticated Users (S-1-5-11) with highest available privileges
     # so that Administrator-installed packages can also be upgraded.
     $principal = New-ScheduledTaskPrincipal -GroupId 'S-1-5-11' -RunLevel Highest
-    Register-ScheduledTask -TaskName 'winget-auto-upgrade-user' `
+    Register-ScheduledTask -TaskName 'User' -TaskPath $taskPath `
         -Action $action -Principal $principal -Settings $settings -Force | Out-Null
 }

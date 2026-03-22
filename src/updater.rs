@@ -160,7 +160,7 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
     if is_system && sys.has_active_user_session() {
         info!("User session detected, triggering user-context upgrade task...");
         let status = std::process::Command::new("schtasks")
-            .args(["/Run", "/TN", "winget-auto-upgrade-user"])
+            .args(["/Run", "/TN", r"\winget-auto-upgrade\User"])
             .status();
         match status {
             Ok(s) if s.success() => info!("User-context task started."),
