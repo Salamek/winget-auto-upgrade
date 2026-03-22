@@ -9,8 +9,8 @@ build:windows:
   script:
     #- winget install Rustlang.Rustup --silent
     #- winget install Microsoft.VisualStudio.2022.Community --silent --override "--wait --quiet --addProductLang En-us --add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"
-    - choco install rustup.install
-    - choco install microsoft-build-tools
+    - choco install rustup.install -y
+    - choco install microsoft-build-tools -y
     - cargo build --release
   tags:
     - windows
