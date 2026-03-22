@@ -133,9 +133,6 @@
       <Component Id="CompReg" Guid="*">
 
         <RegistryKey Root="HKLM" Key="SOFTWARE\Salamek\winget-auto-upgrade">
-          <RegistryValue Name="ProductVersion"
-                         Type="string" Value="$(var.Version)"
-                         KeyPath="yes" />
           <RegistryValue Name="InstallLocation"
                          Type="string" Value="[INSTALLDIR]" />
         </RegistryKey>
