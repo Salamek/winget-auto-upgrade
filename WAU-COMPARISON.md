@@ -92,7 +92,7 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 |---|---|---|---|
 | Scheduled task — SYSTEM context | ✅ | 🔲 MSI | To be created by WiX MSI installer |
 | Scheduled task — user context at logon | ✅ | 🔲 MSI | Optional; for per-user updates |
-| Scheduled task — user notification relay | ✅ | ❌ | `Winget-AutoUpdate-Notify` task; see Notifications gap above |
+| Scheduled task — user notification relay | ✅ | 🟡 | WAU uses a dedicated `Winget-AutoUpdate-Notify` task; this project spawns itself with `notify` subcommand via `WTSQueryUserToken` + `CreateProcessAsUserW` — no extra task needed |
 | MSI installer | ✅ | 🔲 planned | |
 | GPO ADMX template | ✅ | 🔲 planned | |
 | Self-update | ✅ | 🟡 | Via winget — published as a winget package, controlled via allow/block lists like any other package |
