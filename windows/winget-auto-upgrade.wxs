@@ -30,8 +30,9 @@
     <Property Id="ARPHELPLINK"     Value="https://github.com/Salamek/winget-autoupgrade/issues" />
     <Property Id="ARPNOMODIFY"     Value="1" />
 
-    <!-- Locate PowerShell via registry — same approach as WAU -->
-    <Property Id="POWERSHELLEXE">
+    <!-- Locate PowerShell via registry — hardcoded fallback ensures this works even if
+         wixl silently ignores the RegistrySearch child (known wixl limitation) -->
+    <Property Id="POWERSHELLEXE" Value="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe">
       <RegistrySearch Id="POWERSHELLEXE" Type="raw" Root="HKLM"
                       Key="SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell"
                       Name="Path" />
@@ -40,13 +41,13 @@
     <!-- All task management delegated to msi-actions.ps1 -->
     <CustomAction Id="CA_Install"
                   Property="POWERSHELLEXE"
-                  ExeCommand="-NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot;"
+                  ExeCommand="-WindowStyle Hidden -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot;"
                   Execute="immediate"
                   Return="ignore" />
 
     <CustomAction Id="CA_Uninstall"
                   Property="POWERSHELLEXE"
-                  ExeCommand="-NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot; -Uninstall"
+                  ExeCommand="-WindowStyle Hidden -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot; -Uninstall"
                   Execute="immediate"
                   Return="ignore" />
 
