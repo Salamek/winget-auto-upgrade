@@ -42,7 +42,7 @@
 | Per-notification icons (info/success/warning/error) | ✅ | ✅ | |
 | Single updating notification (tag-based replace) | ✅ | ✅ | |
 | Notify logged-in user when running as SYSTEM | ✅ | 🟡 | WAU relays via a `Winget-AutoUpdate-Notify` scheduled task; this project spawns itself with `notify` subcommand in the user session via `WTSQueryUserToken` + `CreateProcessAsUserW` — no extra scheduled task needed |
-| Multi-user notification (all logged-in users) | ✅ | ❌ | This project notifies the active console session only; WAU notifies all logged-in users |
+| Multi-user notification (all logged-in users) | ✅ | 🟡 | This project notifies the active console session only; WAU notifies all logged-in users |
 
 ---
 
@@ -115,4 +115,3 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 **At parity:** core update loop, all package list types and filtering, all per-package upgrade options, hooks, notifications with icons and level filtering, metered connection detection, machine/user scope, WAU registry + group policy config layers, log rotation.
 
 **Different approach (🟡):** mods → hooks, self-update → via winget, scheduling → MSI/Task Scheduler, several registry keys covered implicitly by config design.
-

@@ -1,0 +1,57 @@
+stages:
+  - build
+  - package
+  - deploy
+
+
+build:windows:
+  stage: build
+  script:
+    - winget install Rustlang.Rustup --silent
+    - winget install Microsoft.VisualStudio.2022.Community --silent --override "--wait --quiet --addProductLang En-us --add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"
+    - cargo build --release
+  tags:
+    - windows
+
+  artifacts:
+    paths:
+      - target/release/*.exe
+    expire_in: 1d
+
+
+package:windows:
+  stage: package
+  before_script:
+    - apt update -qy
+    - apt -y install msitools wixl
+  script:
+    - wixl -v ./windows/winget-auto-upgrade.wxs -a x64
+  dependencies:
+    - build:windows
+  tags:
+    - debian
+
+  artifacts:
+    paths:
+      - ./windows/winget-auto-upgrade.msi
+    expire_in: 1d
+
+
+deploy:all:
+  stage: deploy
+  before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SSH_PRIVATE_KEY")
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  script:
+    - apt-get update -qy
+    - apt-get install -y python3-requests
+    - windows/update.sh
+  dependencies:
+    - package:windows
+  tags:
+    - docker
+  only:
+    - tags

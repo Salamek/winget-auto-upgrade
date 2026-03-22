@@ -1,5 +1,5 @@
 [package]
-name = "winget-autoupgrade"
+name = "winget-auto-upgrade"
 version = "0.1.0"
 edition = "2024"
 authors = ["Adam Schubert <adam.schubert@sg1-game.net>"]

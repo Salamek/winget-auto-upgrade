@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  winget-auto-upgrade installer — WiX v3 schema (wixl compatible)
+
+  Build command:
+    wixl -D Version=0.1.0 -a x64 -o winget-auto-upgrade-0.1.0-x64.msi wix/build.wxs
+
+  The release binary must exist first:
+    cargo build -r -t x86_64-pc-windows-gnu
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <Product Id="*"
+           Name="winget-auto-upgrade"
+           Language="1033"
+           Version="$(var.Version)"
+           Manufacturer="Salamek"
+           UpgradeCode="F29B81B7-91C8-4A62-8DAC-F9F029C69942">
+
+    <!-- Silent / per-machine install — no UI needed for a background service -->
+    <Package InstallerVersion="400"
+             Compressed="yes"
+             InstallScope="perMachine" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Standard MSI properties -->
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Salamek/winget-autoupgrade" />
+    <Property Id="ARPHELPLINK"     Value="https://github.com/Salamek/winget-autoupgrade/issues" />
+    <Property Id="ARPNOMODIFY"     Value="1" />
+
+    <!-- ============================================================
+         Scheduled task custom actions (Type 50 — property-based EXE)
+         schtasks.exe is always at this path on x64 Windows.
+         ExeCommand is a formatted string so [INSTALLDIR] is expanded.
+         ============================================================ -->
+    <Property Id="SCHTASKS_EXE" Value="C:\Windows\System32\schtasks.exe" />
+
+    <!-- SYSTEM context: runs daily at 06:00 -->
+    <CustomAction Id="CA_CreateTask"
+                  Property="SCHTASKS_EXE"
+                  ExeCommand="/Create /TN &quot;winget-auto-upgrade&quot; /TR &quot;[INSTALLDIR]winget-auto-upgrade.exe&quot; /SC DAILY /ST 06:00 /RU SYSTEM /RL HIGHEST /F"
+                  Execute="immediate"
+                  Return="ignore" />
+
+    <CustomAction Id="CA_RemoveTask"
+                  Property="SCHTASKS_EXE"
+                  ExeCommand="/Delete /TN &quot;winget-auto-upgrade&quot; /F"
+                  Execute="immediate"
+                  Return="ignore" />
+
+    <!-- User context: runs on logon for any interactive user, highest privileges -->
+    <CustomAction Id="CA_CreateTaskLogon"
+                  Property="SCHTASKS_EXE"
+                  ExeCommand="/Create /TN &quot;winget-auto-upgrade-logon&quot; /TR &quot;[INSTALLDIR]winget-auto-upgrade.exe&quot; /SC ONLOGON /RU &quot;NT AUTHORITY\INTERACTIVE&quot; /RL HIGHEST /F"
+                  Execute="immediate"
+                  Return="ignore" />
+
+    <CustomAction Id="CA_RemoveTaskLogon"
+                  Property="SCHTASKS_EXE"
+                  ExeCommand="/Delete /TN &quot;winget-auto-upgrade-logon&quot; /F"
+                  Execute="immediate"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="CA_CreateTask" After="InstallFiles"
+              Condition="NOT REMOVE" />
+      <Custom Action="CA_CreateTaskLogon" After="CA_CreateTask"
+              Condition="NOT REMOVE" />
+      <Custom Action="CA_RemoveTask" Before="RemoveFiles"
+              Condition="REMOVE=&quot;ALL&quot;" />
+      <Custom Action="CA_RemoveTaskLogon" Before="CA_RemoveTask"
+              Condition="REMOVE=&quot;ALL&quot;" />
+    </InstallExecuteSequence>
+
+    <!-- ============================================================
+         Features
+         ============================================================ -->
+    <Feature Id="Main" Title="winget-auto-upgrade" Level="1">
+      <ComponentGroupRef Id="CompFiles" />
+      <ComponentRef Id="CompReg" />
+    </Feature>
+
+  </Product>
+
+  <!-- ============================================================
+       Directory structure
+       ============================================================ -->
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLDIR" Name="winget-auto-upgrade" />
+      </Directory>
+    </Directory>
+  </Fragment>
+
+  <!-- ============================================================
+       Files
+       Source path is relative to this .wxs file (wix/ directory).
+       ============================================================ -->
+  <Fragment>
+    <ComponentGroup Id="CompFiles" Directory="INSTALLDIR">
+      <Component Id="CompExe" Guid="*">
+        <File Id="ExeFile"
+              Name="winget-auto-upgrade.exe"
+              Source="..\target\x86_64-pc-windows-gnu\release\winget-auto-upgrade.exe"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="config.toml" Guid="*">
+        <File Id="config.toml" Name="config.toml"  Source="examples/config.toml" KeyPath="yes"/>
+      </Component>
+      <Component Id="allow_list.example.toml" Guid="*">
+        <File Id="allow_list.example.toml" Name="allow_list.example.toml"  Source="examples/allow_list.toml" KeyPath="yes"/>
+      </Component>
+      <Component Id="block_list.example.toml" Guid="*">
+        <File Id="block_list.example.toml" Name="block_list.example.toml"  Source="examples/block_list.toml" KeyPath="yes"/>
+      </Component>
+      <Component Id="override_list.example.toml" Guid="*">
+        <File Id="override_list.example.toml" Name="override_list.example.toml"  Source="examples/override_list.toml" KeyPath="yes"/>
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- ============================================================
+       Registry component
+       Only metadata and the toast AppUserModelId are written here.
+       WAU-compatible config keys (WAU_NotificationLevel etc.) are
+       intentionally absent — they come from WAU or Group Policy.
+       ============================================================ -->
+  <Fragment>
+    <DirectoryRef Id="INSTALLDIR">
+      <Component Id="CompReg" Guid="*">
+
+        <RegistryKey Root="HKLM" Key="SOFTWARE\Salamek\winget-auto-upgrade">
+          <RegistryValue Name="ProductVersion"
+                         Type="string" Value="$(var.Version)"
+                         KeyPath="yes" />
+          <RegistryValue Name="InstallLocation"
+                         Type="string" Value="[INSTALLDIR]" />
+        </RegistryKey>
+
+        <!-- Toast notification AppUserModelId.
+             Matches the ID used in notification.rs:
+               Windows.SystemToast.WAUG.Notification -->
+        <RegistryKey Root="HKCR"
+                     Key="AppUserModelId\Windows.SystemToast.WAUG.Notification">
+          <RegistryValue Name="DisplayName"
+                         Type="expandable" Value="Application Update" />
+          <RegistryValue Name="IconUri"
+                         Type="expandable"
+                         Value="%SystemRoot%\system32\@WindowsUpdateToastIcon.png" />
+        </RegistryKey>
+
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+
+</Wix>

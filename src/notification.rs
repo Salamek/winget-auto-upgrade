@@ -65,7 +65,7 @@ impl WindowsNotifier {
         use windows::core::HSTRING;
 
         let notifier = ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from(
-            "Windows.SystemToast.WAU.Notification",
+            "Windows.SystemToast.WAUG.Notification",
         ))
         .expect("Failed to create toast notifier");
 
@@ -81,7 +81,7 @@ impl WindowsNotifier {
         use windows::core::HSTRING;
 
         let notifier = ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from(
-            "Windows.SystemToast.WAU.Notification",
+            "Windows.SystemToast.WAUG.Notification",
         ))
         .expect("Failed to create toast notifier");
 
