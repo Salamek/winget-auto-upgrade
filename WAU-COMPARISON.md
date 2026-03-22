@@ -6,6 +6,8 @@
 > - WAU has a built-in mod/extension system; this project deliberately excludes it — external tools should be called via pre/post hooks instead (separate project planned)
 > - WAU self-updates via a custom mechanism; this project self-updates via winget (published as a winget package, controlled by the same allow/block lists as any other package)
 
+**Legend:** ✅ implemented &nbsp;|&nbsp; 🟡 different approach, same outcome &nbsp;|&nbsp; ❌ not implemented &nbsp;|&nbsp; 🔲 planned
+
 ---
 
 ## Core Update Logic
@@ -23,11 +25,11 @@
 | Ignore security hash per package | ✅ | ✅ | |
 | Skip dependencies per package | ✅ | ✅ | |
 | Machine vs user scope filtering | ✅ | ✅ | WAU: `WAU_UserContext`; this project: scope field in package lists |
-| Allow user context to bypass system lists | ✅ | ✅ | WAU: `WAU_BypassListForUsers` (global toggle); this project: `scope` field per entry — more granular |
+| Allow user context to bypass system lists | ✅ | 🟡 | WAU: `WAU_BypassListForUsers` (global toggle); this project: `scope` field per entry — more granular |
 | Metered connection detection | ✅ | ✅ | WAU: `WAU_DoNotRunOnMetered` |
 | Pre-update hook | ✅ | ✅ | WAU: mods (`_pre.ps1`); this project: `pre_update_hook` config |
 | Post-update hook | ✅ | ✅ | WAU: mods (`_notify.ps1`); this project: `post_update_hook` config |
-| Mods system (download & exec scripts) | ✅ | ❌ | **Deliberately excluded** — security risk; use hooks + separate project instead |
+| Mods system (download & exec scripts) | ✅ | 🟡 | Deliberately excluded — security risk; equivalent via pre/post hooks + separate project |
 
 ---
 
@@ -51,22 +53,22 @@
 | `WAU_NotificationLevel` | ✅ | ✅ | Values differ slightly: WAU uses "SuccessOnly"/"ErrorsOnly"; code maps them |
 | `WAU_DoNotRunOnMetered` | ✅ | ✅ | |
 | `WAU_WingetSourceCustom` | ✅ | ✅ | Maps to `default_source` |
-| `WAU_UseWhiteList` | ✅ | ✅ | Implicit: non-empty allow list = whitelist mode |
-| `WAU_ListPath` | ✅ | ✅ | Equivalent: `allow_list_path` / `block_list_path` / `override_list_path` in config |
-| `WAU_UserContext` | ✅ | ✅ | Equivalent: scope-based filtering in package lists |
+| `WAU_UseWhiteList` | ✅ | 🟡 | Implicit: non-empty allow list = whitelist mode |
+| `WAU_ListPath` | ✅ | 🟡 | Equivalent: `allow_list_path` / `block_list_path` / `override_list_path` in config |
+| `WAU_UserContext` | ✅ | 🟡 | Equivalent: scope-based filtering in package lists |
+| `WAU_BypassListForUsers` | ✅ | 🟡 | Superseded by `scope` field — per-entry control is more granular than a global toggle |
 | `WAU_MaxLogFiles` | ✅ | ✅ | |
 | `WAU_MaxLogSize` | ✅ | ✅ | |
-| `WAU_UpdatesAtLogon` | ✅ | ❌ | Scheduling is MSI/Task Scheduler responsibility |
-| `WAU_UpdatesAtTime` | ✅ | ❌ | Scheduling is MSI/Task Scheduler responsibility |
-| `WAU_UpdatesTimeDelay` | ✅ | ❌ | Scheduling is MSI/Task Scheduler responsibility |
-| `WAU_UpdatesInterval` | ✅ | ❌ | Scheduling is MSI/Task Scheduler responsibility |
-| `WAU_DisableAutoUpdate` | ✅ | ❌ | WAU self-update only; not applicable |
-| `WAU_UpdatePrerelease` | ✅ | ❌ | WAU self-update only; not applicable |
-| `WAU_ModsPath` | ✅ | ❌ | Mods deliberately excluded |
-| `WAU_AzureBlobSASURL` | ✅ | ❌ | WAU uses this for mods auth; list paths already support HTTPS URLs |
-| `WAU_BypassListForUsers` | ✅ | ✅ | Superseded by `scope` field in package lists — per-entry machine/user/all control is more granular than a global bypass toggle |
+| `WAU_UpdatesAtLogon` | ✅ | 🟡 | Scheduling is MSI/Task Scheduler responsibility |
+| `WAU_UpdatesAtTime` | ✅ | 🟡 | Scheduling is MSI/Task Scheduler responsibility |
+| `WAU_UpdatesTimeDelay` | ✅ | 🟡 | Scheduling is MSI/Task Scheduler responsibility |
+| `WAU_UpdatesInterval` | ✅ | 🟡 | Scheduling is MSI/Task Scheduler responsibility |
+| `WAU_DisableAutoUpdate` | ✅ | 🟡 | Self-update handled via winget; control via allow/block lists |
+| `WAU_UpdatePrerelease` | ✅ | 🟡 | Self-update handled via winget; pre-release control via allow list |
+| `WAU_ModsPath` | ✅ | 🟡 | Mods replaced by pre/post hooks |
+| `WAU_AzureBlobSASURL` | ✅ | 🟡 | Mods-specific; list paths already support HTTPS URLs including Azure Blob |
 
-Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) are supported for the three keys this project reads.
+Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) are supported for the keys this project reads.
 
 ---
 
@@ -93,7 +95,7 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 | Scheduled task — user notification relay | ✅ | ❌ | `Winget-AutoUpdate-Notify` task; see Notifications gap above |
 | MSI installer | ✅ | 🔲 planned | |
 | GPO ADMX template | ✅ | 🔲 planned | |
-| Self-update | ✅ | ✅ | Via winget itself — the package will be published to winget and updates like any other package; controlled via allow/block lists |
+| Self-update | ✅ | 🟡 | Via winget — published as a winget package, controlled via allow/block lists like any other package |
 
 ---
 
@@ -110,9 +112,9 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 
 ## Summary
 
-**At parity:** core update loop, all package list types and filtering, all per-package upgrade options, hooks, notifications with icons and level filtering, metered connection detection, machine/user scope, WAU registry + group policy config layers.
+**At parity:** core update loop, all package list types and filtering, all per-package upgrade options, hooks, notifications with icons and level filtering, metered connection detection, machine/user scope, WAU registry + group policy config layers, log rotation.
 
-**Intentionally out of scope:** mods system, self-update, ADMX, scheduling (MSI responsibility).
+**Different approach (🟡):** mods → hooks, self-update → via winget, scheduling → MSI/Task Scheduler, several registry keys covered implicitly by config design.
 
 **Gaps worth addressing:**
 1. **SYSTEM → user notification relay** — most impactful; without it the binary is silent when run as SYSTEM.
