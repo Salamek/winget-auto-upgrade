@@ -9,8 +9,7 @@ build:windows:
   script:
     #- winget install Rustlang.Rustup --silent
     #- winget install Microsoft.VisualStudio.2022.Community --silent --override "--wait --quiet --addProductLang En-us --add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"
-    - $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
-    - cargo build --release
+    - pwsh .\windows\ci-build.ps1
   tags:
     - windows
 
