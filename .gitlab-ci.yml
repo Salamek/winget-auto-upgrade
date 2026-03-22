@@ -51,7 +51,7 @@ deploy:all:
   script:
     - apt-get update -qy
     - apt-get install -y python3-requests
-    - windows/update.sh
+    - python3 windows/update.py
   dependencies:
     - package:windows
   tags:
