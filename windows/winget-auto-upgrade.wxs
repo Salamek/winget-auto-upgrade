@@ -30,47 +30,30 @@
     <Property Id="ARPHELPLINK"     Value="https://github.com/Salamek/winget-autoupgrade/issues" />
     <Property Id="ARPNOMODIFY"     Value="1" />
 
-    <!-- ============================================================
-         Scheduled task custom actions (Type 50 — property-based EXE)
-         schtasks.exe is always at this path on x64 Windows.
-         ExeCommand is a formatted string so [INSTALLDIR] is expanded.
-         ============================================================ -->
-    <Property Id="SCHTASKS_EXE" Value="C:\Windows\System32\schtasks.exe" />
+    <!-- Locate PowerShell via registry — same approach as WAU -->
+    <Property Id="POWERSHELLEXE">
+      <RegistrySearch Id="POWERSHELLEXE" Type="raw" Root="HKLM"
+                      Key="SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell"
+                      Name="Path" />
+    </Property>
 
-    <!-- SYSTEM context: runs daily at 06:00 -->
-    <CustomAction Id="CA_CreateTask"
-                  Property="SCHTASKS_EXE"
-                  ExeCommand="/Create /TN &quot;winget-auto-upgrade&quot; /TR &quot;[INSTALLDIR]winget-auto-upgrade.exe&quot; /SC DAILY /ST 06:00 /RU SYSTEM /RL HIGHEST /F"
+    <!-- All task management delegated to msi-actions.ps1 -->
+    <CustomAction Id="CA_Install"
+                  Property="POWERSHELLEXE"
+                  ExeCommand="-NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot;"
                   Execute="immediate"
                   Return="ignore" />
 
-    <CustomAction Id="CA_RemoveTask"
-                  Property="SCHTASKS_EXE"
-                  ExeCommand="/Delete /TN &quot;winget-auto-upgrade&quot; /F"
-                  Execute="immediate"
-                  Return="ignore" />
-
-    <!-- User context: runs on logon for any interactive user, highest privileges -->
-    <CustomAction Id="CA_CreateTaskLogon"
-                  Property="SCHTASKS_EXE"
-                  ExeCommand="/Create /TN &quot;winget-auto-upgrade-logon&quot; /TR &quot;[INSTALLDIR]winget-auto-upgrade.exe&quot; /SC ONLOGON /RU &quot;NT AUTHORITY\INTERACTIVE&quot; /RL HIGHEST /F"
-                  Execute="immediate"
-                  Return="ignore" />
-
-    <CustomAction Id="CA_RemoveTaskLogon"
-                  Property="SCHTASKS_EXE"
-                  ExeCommand="/Delete /TN &quot;winget-auto-upgrade-logon&quot; /F"
+    <CustomAction Id="CA_Uninstall"
+                  Property="POWERSHELLEXE"
+                  ExeCommand="-NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot; -Uninstall"
                   Execute="immediate"
                   Return="ignore" />
 
     <InstallExecuteSequence>
-      <Custom Action="CA_CreateTask" After="InstallFiles"
+      <Custom Action="CA_Install" After="InstallFiles"
               Condition="NOT REMOVE" />
-      <Custom Action="CA_CreateTaskLogon" After="CA_CreateTask"
-              Condition="NOT REMOVE" />
-      <Custom Action="CA_RemoveTask" Before="RemoveFiles"
-              Condition="REMOVE=&quot;ALL&quot;" />
-      <Custom Action="CA_RemoveTaskLogon" Before="CA_RemoveTask"
+      <Custom Action="CA_Uninstall" Before="RemoveFiles"
               Condition="REMOVE=&quot;ALL&quot;" />
     </InstallExecuteSequence>
 
@@ -106,6 +89,10 @@
               Name="winget-auto-upgrade.exe"
               Source="target/release/winget-auto-upgrade.exe"
               KeyPath="yes" />
+      </Component>
+      <Component Id="msi_actions" Guid="*">
+        <File Id="msi_actions" Name="msi-actions.ps1"
+              Source="windows/msi-actions.ps1" KeyPath="yes" />
       </Component>
       <Component Id="config.toml" Guid="*">
         <File Id="config.toml" Name="config.toml"  Source="examples/config.toml" KeyPath="yes"/>
