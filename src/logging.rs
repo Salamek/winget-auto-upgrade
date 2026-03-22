@@ -14,7 +14,26 @@ use log4rs::{
     encode::pattern::PatternEncoder,
 };
 
+fn resolve_log_path(config: &Config) -> std::path::PathBuf {
+    if let Some(ref p) = config.log_path {
+        return std::path::PathBuf::from(p);
+    }
+    // Autodetect: %APPDATA% resolves to the correct per-context directory
+    // automatically — SYSTEM gets its system profile, users get their own.
+    let base = std::env::var("APPDATA")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| std::path::PathBuf::from("."));
+    base.join("winget-auto-upgrade").join("winget-update.log")
+}
+
 pub fn init(config: &Config) -> anyhow::Result<()> {
+    let log_path = resolve_log_path(config);
+
+    // Ensure the log directory exists
+    if let Some(dir) = log_path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+
     let pattern = "{d(%H:%M:%S)} - {l} - {m}{n}";
 
     let console = ConsoleAppender::builder()
@@ -22,7 +41,7 @@ pub fn init(config: &Config) -> anyhow::Result<()> {
         .build();
 
     // Rotated files: winget-update.log.1, winget-update.log.2, ...
-    let roller_pattern = format!("{}.{{}}", config.log_path);
+    let roller_pattern = format!("{}.{{}}", log_path.display());
     let roller = FixedWindowRoller::builder()
         .build(&roller_pattern, config.max_log_files)?;
     let trigger = SizeTrigger::new(config.max_log_size);
@@ -30,7 +49,7 @@ pub fn init(config: &Config) -> anyhow::Result<()> {
 
     let file = RollingFileAppender::builder()
         .encoder(Box::new(PatternEncoder::new(pattern)))
-        .build(&config.log_path, Box::new(policy))?;
+        .build(&log_path, Box::new(policy))?;
 
     let log_config = LogConfig::builder()
         .appender(Appender::builder().build("console", Box::new(console)))

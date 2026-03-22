@@ -27,7 +27,7 @@ impl NotificationLevel {
 
 #[derive(Debug)]
 pub struct Config {
-    pub log_path: String,
+    pub log_path: Option<String>,
     pub default_source: String,
     pub allow_list_path: String,
     pub block_list_path: String,
@@ -45,7 +45,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            log_path: "winget-update.log".to_string(),
+            log_path: None,
             default_source: "winget".to_string(),
             allow_list_path: "file://allow_list.toml".to_string(),
             block_list_path: "file://block_list.toml".to_string(),
@@ -103,7 +103,7 @@ impl RawConfig {
     fn into_config(self) -> Config {
         let defaults = Config::default();
         Config {
-            log_path:                 self.log_path.unwrap_or(defaults.log_path),
+            log_path:                 self.log_path.or(defaults.log_path),
             default_source:           self.default_source.unwrap_or(defaults.default_source),
             allow_list_path:          self.allow_list_path.unwrap_or(defaults.allow_list_path),
             block_list_path:          self.block_list_path.unwrap_or(defaults.block_list_path),
