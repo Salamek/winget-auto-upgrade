@@ -55,6 +55,6 @@ deploy:all:
   dependencies:
     - package:windows
   tags:
-    - docker
+    - debian
   only:
     - tags
