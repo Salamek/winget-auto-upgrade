@@ -52,7 +52,7 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
 
     notifier.info(
         "Winget Update",
-        &format!("{} updates available", upgrades.len()),
+        &format!("{} update(s) available", upgrades.len()),
     );
 
     info!("Running updates...");
@@ -82,7 +82,7 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
         notifier.info(
             "Winget Update",
             &format!(
-                "Updating {} to {}",
+                "Updating {} → {}",
                 package_upgrade.from.name, package_upgrade.to.version
             ),
         );
@@ -113,10 +113,10 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
                     "Updated {}: {} -> {}",
                     package_upgrade.from.name, package_upgrade.from.version, upgraded.version
                 );
-                notifier.info(
+                notifier.success(
                     "Winget Update",
                     &format!(
-                        "Updated {}: {} -> {}",
+                        "Updated {}: {} → {}",
                         package_upgrade.from.name, package_upgrade.from.version, upgraded.version
                     ),
                 );
@@ -135,7 +135,7 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
             }
             Err(e) => {
                 warn!("Failed to upgrade {}: {}", package_upgrade.from.id, e);
-                notifier.warn(
+                notifier.error(
                     "Winget Update",
                     &format!("Failed to upgrade {}: {}", package_upgrade.from.id, e),
                 );
@@ -146,13 +146,13 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
 
     if !failed.is_empty() {
         let failed_list = failed.join(", ");
-        notifier.warn(
+        notifier.error(
             "Winget Update",
             &format!("Failed to update: {}", failed_list),
         );
         warn!("Failed updates: {}", failed_list);
     } else {
-        notifier.info("Winget Update", "All updates completed successfully");
+        notifier.success("Winget Update", "All updates completed successfully");
     }
 
     Ok(())
