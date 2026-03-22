@@ -54,8 +54,8 @@
 | `WAU_UseWhiteList` | ✅ | ✅ | Implicit: non-empty allow list = whitelist mode |
 | `WAU_ListPath` | ✅ | ✅ | Equivalent: `allow_list_path` / `block_list_path` / `override_list_path` in config |
 | `WAU_UserContext` | ✅ | ✅ | Equivalent: scope-based filtering in package lists |
-| `WAU_MaxLogFiles` | ✅ | ❌ | Log rotation not implemented |
-| `WAU_MaxLogSize` | ✅ | ❌ | Log rotation not implemented |
+| `WAU_MaxLogFiles` | ✅ | ✅ | |
+| `WAU_MaxLogSize` | ✅ | ✅ | |
 | `WAU_UpdatesAtLogon` | ✅ | ❌ | Scheduling is MSI/Task Scheduler responsibility |
 | `WAU_UpdatesAtTime` | ✅ | ❌ | Scheduling is MSI/Task Scheduler responsibility |
 | `WAU_UpdatesTimeDelay` | ✅ | ❌ | Scheduling is MSI/Task Scheduler responsibility |
