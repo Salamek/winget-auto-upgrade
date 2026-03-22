@@ -86,6 +86,7 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
                 package_upgrade.from.name, package_upgrade.to.version
             ),
         );
+
         let scope = if is_system { "machine" } else { "user" };
         let ctx = HookContext {
             id: &package_upgrade.from.id,
@@ -112,6 +113,13 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
                     "Updated {}: {} -> {}",
                     package_upgrade.from.name, package_upgrade.from.version, upgraded.version
                 );
+                notifier.info(
+                    "Winget Update",
+                    &format!(
+                        "Updated {}: {} -> {}",
+                        package_upgrade.from.name, package_upgrade.from.version, upgraded.version
+                    ),
+                );
                 if let Some(hook) = &config.post_update_hook {
                     let post_ctx = HookContext {
                         version: &upgraded.version,
@@ -127,6 +135,10 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
             }
             Err(e) => {
                 warn!("Failed to upgrade {}: {}", package_upgrade.from.id, e);
+                notifier.warn(
+                    "Winget Update",
+                    &format!("Failed to upgrade {}: {}", package_upgrade.from.id, e),
+                );
                 failed.push(package_upgrade.from.id.clone());
             }
         }
