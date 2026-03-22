@@ -41,8 +41,8 @@
 | Notification levels (Full/SuccessOnly/ErrorsOnly/None) | ✅ | ✅ | `WAU_NotificationLevel` |
 | Per-notification icons (info/success/warning/error) | ✅ | ✅ | |
 | Single updating notification (tag-based replace) | ✅ | ✅ | |
-| Notify logged-in user when running as SYSTEM | ✅ | ❌ | WAU saves XML and triggers `Winget-AutoUpdate-Notify` scheduled task to display in user context. This project drops the notification when running as SYSTEM. Needs a relay mechanism or separate notify helper exe. |
-| Multi-user notification (all logged-in users) | ✅ | ❌ | Depends on the SYSTEM relay above |
+| Notify logged-in user when running as SYSTEM | ✅ | 🟡 | WAU relays via a `Winget-AutoUpdate-Notify` scheduled task; this project spawns itself with `notify` subcommand in the user session via `WTSQueryUserToken` + `CreateProcessAsUserW` — no extra scheduled task needed |
+| Multi-user notification (all logged-in users) | ✅ | ❌ | This project notifies the active console session only; WAU notifies all logged-in users |
 
 ---
 
@@ -117,4 +117,4 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 **Different approach (🟡):** mods → hooks, self-update → via winget, scheduling → MSI/Task Scheduler, several registry keys covered implicitly by config design.
 
 **Gaps worth addressing:**
-1. **SYSTEM → user notification relay** — most impactful; without it the binary is silent when run as SYSTEM.
+1. **Multi-user notification** — currently only the active console session is notified; WAU notifies all logged-in users.
