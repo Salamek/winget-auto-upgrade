@@ -38,6 +38,8 @@ pub struct Config {
     pub skip_unknown_version: bool,
     pub run_on_metered_connection: bool,
     pub notification_level: NotificationLevel,
+    pub max_log_files: u32,
+    pub max_log_size: u64,
 }
 
 impl Default for Config {
@@ -54,6 +56,8 @@ impl Default for Config {
             skip_unknown_version: true,
             run_on_metered_connection: false,
             notification_level: NotificationLevel::default(),
+            max_log_files: 3,
+            max_log_size: 1_048_576, // 1 MB
         }
     }
 }
@@ -71,6 +75,8 @@ struct RawConfig {
     skip_unknown_version: Option<bool>,
     run_on_metered_connection: Option<bool>,
     notification_level: Option<NotificationLevel>,
+    max_log_files: Option<u32>,
+    max_log_size: Option<u64>,
 }
 
 impl RawConfig {
@@ -89,6 +95,8 @@ impl RawConfig {
             skip_unknown_version:     other.skip_unknown_version.or(self.skip_unknown_version),
             run_on_metered_connection: other.run_on_metered_connection.or(self.run_on_metered_connection),
             notification_level:       other.notification_level.or(self.notification_level),
+            max_log_files:            other.max_log_files.or(self.max_log_files),
+            max_log_size:             other.max_log_size.or(self.max_log_size),
         }
     }
 
@@ -106,6 +114,8 @@ impl RawConfig {
             skip_unknown_version:     self.skip_unknown_version.unwrap_or(defaults.skip_unknown_version),
             run_on_metered_connection: self.run_on_metered_connection.unwrap_or(defaults.run_on_metered_connection),
             notification_level:       self.notification_level.unwrap_or(defaults.notification_level),
+            max_log_files:            self.max_log_files.unwrap_or(defaults.max_log_files),
+            max_log_size:             self.max_log_size.unwrap_or(defaults.max_log_size),
         }
     }
 }
@@ -131,6 +141,8 @@ fn load_wau_registry_layer() -> RawConfig {
         run_on_metered_connection: get_bool("WAU_DoNotRunOnMetered").map(|v| !v),
         notification_level:       get_string("WAU_NotificationLevel")
                                     .and_then(|s| NotificationLevel::from_wau_str(&s)),
+        max_log_files:            key.get_value::<u32, _>("WAU_MaxLogFiles").ok(),
+        max_log_size:             key.get_value::<u32, _>("WAU_MaxLogSize").ok().map(|v| v as u64),
         ..RawConfig::default()
     }
 }
@@ -156,6 +168,8 @@ fn load_wau_policy_registry_layer() -> RawConfig {
         run_on_metered_connection: get_bool("WAU_DoNotRunOnMetered").map(|v| !v),
         notification_level:       get_string("WAU_NotificationLevel")
                                     .and_then(|s| NotificationLevel::from_wau_str(&s)),
+        max_log_files:            key.get_value::<u32, _>("WAU_MaxLogFiles").ok(),
+        max_log_size:             key.get_value::<u32, _>("WAU_MaxLogSize").ok().map(|v| v as u64),
         ..RawConfig::default()
     }
 }

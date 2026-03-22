@@ -103,8 +103,8 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 |---|---|---|---|
 | File logging | ✅ | ✅ | |
 | Console/terminal logging | ✅ | ✅ | |
-| Log rotation by file count (`WAU_MaxLogFiles`) | ✅ | ❌ | Not implemented |
-| Log rotation by file size (`WAU_MaxLogSize`) | ✅ | ❌ | Not implemented |
+| Log rotation by file count (`WAU_MaxLogFiles`) | ✅ | ✅ | |
+| Log rotation by file size (`WAU_MaxLogSize`) | ✅ | ✅ | |
 
 ---
 
@@ -116,4 +116,3 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 
 **Gaps worth addressing:**
 1. **SYSTEM → user notification relay** — most impactful; without it the binary is silent when run as SYSTEM.
-2. **Log rotation** — `WAU_MaxLogFiles` / `WAU_MaxLogSize` equivalents.
