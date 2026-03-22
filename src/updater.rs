@@ -155,5 +155,19 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
         notifier.success("Winget Update", "All updates completed successfully");
     }
 
+    // After a SYSTEM run, trigger the user-context task if someone is logged in
+    // so that Administrator-installed packages are also upgraded in user context.
+    if is_system && sys.has_active_user_session() {
+        info!("User session detected, triggering user-context upgrade task...");
+        let status = std::process::Command::new("schtasks")
+            .args(["/Run", "/TN", "winget-auto-upgrade-user"])
+            .status();
+        match status {
+            Ok(s) if s.success() => info!("User-context task started."),
+            Ok(s) => warn!("schtasks /Run exited with status {}", s),
+            Err(e) => warn!("Failed to start user-context task: {}", e),
+        }
+    }
+
     Ok(())
 }

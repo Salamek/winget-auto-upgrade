@@ -1,6 +1,7 @@
 pub trait System {
     fn is_metered_connection(&self) -> bool;
     fn is_running_as_system(&self) -> bool;
+    fn has_active_user_session(&self) -> bool;
 }
 
 #[cfg(target_os = "windows")]
@@ -15,6 +16,11 @@ impl WindowsSystem {
 
 #[cfg(target_os = "windows")]
 impl System for WindowsSystem {
+    fn has_active_user_session(&self) -> bool {
+        use windows::Win32::System::RemoteDesktop::WTSGetActiveConsoleSessionId;
+        unsafe { WTSGetActiveConsoleSessionId() != 0xFFFF_FFFF }
+    }
+
     fn is_metered_connection(&self) -> bool {
         use windows::Networking::Connectivity::{NetworkCostType, NetworkInformation};
 
@@ -81,6 +87,10 @@ impl StubSystem {
 
 #[cfg(not(target_os = "windows"))]
 impl System for StubSystem {
+    fn has_active_user_session(&self) -> bool {
+        false
+    }
+
     fn is_metered_connection(&self) -> bool {
         false
     }
