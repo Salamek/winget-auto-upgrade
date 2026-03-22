@@ -116,5 +116,3 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 
 **Different approach (🟡):** mods → hooks, self-update → via winget, scheduling → MSI/Task Scheduler, several registry keys covered implicitly by config design.
 
-**Gaps worth addressing:**
-1. **Multi-user notification** — currently only the active console session is notified; WAU notifies all logged-in users.
