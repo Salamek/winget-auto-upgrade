@@ -4,7 +4,7 @@
 > - WAU is PowerShell-based; this project is a native Rust binary
 > - WAU manages its own scheduled tasks; this project is a plain executable invoked by a scheduled task created by the MSI installer
 > - WAU has a built-in mod/extension system; this project deliberately excludes it — external tools should be called via pre/post hooks instead (separate project planned)
-> - WAU self-updates; this project is distributed/updated via MSI
+> - WAU self-updates via a custom mechanism; this project self-updates via winget (published as a winget package, controlled by the same allow/block lists as any other package)
 
 ---
 
@@ -92,8 +92,8 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 | Scheduled task — user context at logon | ✅ | 🔲 MSI | Optional; for per-user updates |
 | Scheduled task — user notification relay | ✅ | ❌ | `Winget-AutoUpdate-Notify` task; see Notifications gap above |
 | MSI installer | ✅ | 🔲 planned | |
-| GPO ADMX template | ✅ | ❌ | Not planned |
-| Self-update | ✅ | ❌ | Intentionally excluded; use MSI |
+| GPO ADMX template | ✅ | 🔲 planned | |
+| Self-update | ✅ | ✅ | Via winget itself — the package will be published to winget and updates like any other package; controlled via allow/block lists |
 
 ---
 
@@ -105,7 +105,6 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 | Console/terminal logging | ✅ | ✅ | |
 | Log rotation by file count (`WAU_MaxLogFiles`) | ✅ | ❌ | Not implemented |
 | Log rotation by file size (`WAU_MaxLogSize`) | ✅ | ❌ | Not implemented |
-| Per-package log files | ✅ | ❌ | WAU writes a separate log per package; this project uses a single log |
 
 ---
 
