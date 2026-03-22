@@ -104,7 +104,7 @@
       <Component Id="CompExe" Guid="*">
         <File Id="ExeFile"
               Name="winget-auto-upgrade.exe"
-              Source="..\target\x86_64-pc-windows-gnu\release\winget-auto-upgrade.exe"
+              Source="..\target\release\winget-auto-upgrade.exe"
               KeyPath="yes" />
       </Component>
       <Component Id="config.toml" Guid="*">
