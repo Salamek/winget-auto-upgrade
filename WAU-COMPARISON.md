@@ -23,7 +23,7 @@
 | Ignore security hash per package | ✅ | ✅ | |
 | Skip dependencies per package | ✅ | ✅ | |
 | Machine vs user scope filtering | ✅ | ✅ | WAU: `WAU_UserContext`; this project: scope field in package lists |
-| Allow user context to bypass system lists | ✅ | ❌ | WAU: `WAU_BypassListForUsers` |
+| Allow user context to bypass system lists | ✅ | ✅ | WAU: `WAU_BypassListForUsers` (global toggle); this project: `scope` field per entry — more granular |
 | Metered connection detection | ✅ | ✅ | WAU: `WAU_DoNotRunOnMetered` |
 | Pre-update hook | ✅ | ✅ | WAU: mods (`_pre.ps1`); this project: `pre_update_hook` config |
 | Post-update hook | ✅ | ✅ | WAU: mods (`_notify.ps1`); this project: `post_update_hook` config |
@@ -64,7 +64,7 @@
 | `WAU_UpdatePrerelease` | ✅ | ❌ | WAU self-update only; not applicable |
 | `WAU_ModsPath` | ✅ | ❌ | Mods deliberately excluded |
 | `WAU_AzureBlobSASURL` | ✅ | ❌ | WAU uses this for mods auth; list paths already support HTTPS URLs |
-| `WAU_BypassListForUsers` | ✅ | ❌ | Not implemented |
+| `WAU_BypassListForUsers` | ✅ | ✅ | Superseded by `scope` field in package lists — per-entry machine/user/all control is more granular than a global bypass toggle |
 
 Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) are supported for the three keys this project reads.
 
@@ -118,4 +118,3 @@ Group Policy overrides (`HKLM\Software\Policies\Romanitho\Winget-AutoUpdate`) ar
 **Gaps worth addressing:**
 1. **SYSTEM → user notification relay** — most impactful; without it the binary is silent when run as SYSTEM.
 2. **Log rotation** — `WAU_MaxLogFiles` / `WAU_MaxLogSize` equivalents.
-3. **`WAU_BypassListForUsers`** — low priority; allows user-context runs to ignore the system block/allow list.
