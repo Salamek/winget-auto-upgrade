@@ -48,8 +48,8 @@ All configuration is optional — the binary runs with sensible defaults if no c
 ### config.toml
 
 ```toml
-# Path to the log file
-log_path = "winget-update.log"
+# Path to the log file, autodetected to %APPDATA% if not set
+# log_path = "winget-update.log"
 
 # Default package source when not specified in a list
 default_source = "winget"
