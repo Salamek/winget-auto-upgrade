@@ -39,7 +39,7 @@
     </Property>
 
     <!-- All task management delegated to msi-actions.ps1.
-         Launched via conhost.exe --headless to suppress the console window.
+         Launched via conhost.exe (headless) to suppress the console window.
          Type 50 (Property-based EXE): Property = executable, ExeCommand = arguments.
          Deferred execution runs in the msiexec service (Session 0) with full elevation. -->
     <CustomAction Id="CA_Install"
