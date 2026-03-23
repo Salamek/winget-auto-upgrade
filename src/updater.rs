@@ -5,6 +5,18 @@ use crate::package_manager::{PackageManager, UpgradeOptions};
 use crate::system::System;
 use log::{info, warn};
 
+fn trigger_user_context_task() {
+    info!("User session detected, triggering user-context upgrade task...");
+    let status = std::process::Command::new("schtasks")
+        .args(["/Run", "/TN", r"\winget-auto-upgrade\User"])
+        .status();
+    match status {
+        Ok(s) if s.success() => info!("User-context task started."),
+        Ok(s) => warn!("schtasks /Run exited with status {}", s),
+        Err(e) => warn!("Failed to start user-context task: {}", e),
+    }
+}
+
 pub fn run_update<P: PackageManager, N: Notifier, S: System>(
     pm: P,
     notifier: N,
@@ -44,9 +56,13 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
             in_allow && !in_block && !unknown_version
         })
         .collect();
+
     if upgrades.is_empty() {
         notifier.info("Winget Update", "No updates available");
         info!("No updates found.");
+        if is_system && sys.has_active_user_session() {
+            trigger_user_context_task();
+        }
         return Ok(());
     }
 
@@ -155,18 +171,8 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
         notifier.success("Winget Update", "All updates completed successfully");
     }
 
-    // After a SYSTEM run, trigger the user-context task if someone is logged in
-    // so that Administrator-installed packages are also upgraded in user context.
     if is_system && sys.has_active_user_session() {
-        info!("User session detected, triggering user-context upgrade task...");
-        let status = std::process::Command::new("schtasks")
-            .args(["/Run", "/TN", r"\winget-auto-upgrade\User"])
-            .status();
-        match status {
-            Ok(s) if s.success() => info!("User-context task started."),
-            Ok(s) => warn!("schtasks /Run exited with status {}", s),
-            Err(e) => warn!("Failed to start user-context task: {}", e),
-        }
+        trigger_user_context_task();
     }
 
     Ok(())

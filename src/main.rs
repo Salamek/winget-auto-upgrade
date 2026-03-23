@@ -52,10 +52,8 @@ fn run_update() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(not(target_os = "windows"))]
     let sys = system::StubSystem::new();
 
-    let is_system = sys.is_running_as_system();
-
     #[cfg(target_os = "windows")]
-    let notifier = notification::WindowsNotifier::new(config.notification_level.clone(), is_system);
+    let notifier = notification::WindowsNotifier::new(config.notification_level.clone(), sys.is_running_as_system());
     #[cfg(not(target_os = "windows"))]
     let notifier = notification::StubNotifier::new(config.notification_level.clone());
 
