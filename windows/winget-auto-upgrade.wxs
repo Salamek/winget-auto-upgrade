@@ -13,7 +13,7 @@
   <Product Id="*"
            Name="winget-auto-upgrade"
            Language="1033"
-           Version="0.0.10"
+           Version="0.0.11"
            Manufacturer="Salamek"
            UpgradeCode="F29B81B7-91C8-4A62-8DAC-F9F029C69942">
 
