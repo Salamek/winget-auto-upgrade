@@ -15,6 +15,19 @@ Automated package updater for [winget](https://github.com/microsoft/winget-cli) 
 
 ## Installation
 
+### Via winget (recommended)
+
+> **Note:** The package is currently hosted in a custom repository while waiting for inclusion in the official winget repository.
+
+Add the custom source and install:
+
+```powershell
+winget source add -n salamek-win -t "Microsoft.Rest" -a https://repository.salamek.cz/win/api/
+winget install salamek.winget-auto-upgrade --silent --accept-package-agreements --accept-source-agreements
+```
+
+### From source
+
 ```
 cargo build --release
 ```

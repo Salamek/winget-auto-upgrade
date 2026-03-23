@@ -1,5 +1,5 @@
-# Path to the log file
-log_path = "winget-update.log"
+# Path to the log file, autodetected to %APPDATA% if not set
+# log_path = "winget-update.log"
 
 # Default package source used when a package list entry omits the source field
 default_source = "winget"
