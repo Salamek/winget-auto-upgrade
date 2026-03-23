@@ -22,7 +22,7 @@
              Compressed="yes"
              InstallScope="perMachine" />
 
-    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." Schedule="afterInstallInitialize" />
     <MediaTemplate EmbedCab="yes" />
 
     <!-- Standard MSI properties -->
@@ -56,7 +56,7 @@
     <CustomAction Id="CA_Uninstall"
                   Property="CONHOSTEXE"
                   ExeCommand="--headless &quot;[POWERSHELLEXE]&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot; -Uninstall"
-                  Execute="deferred"
+                  Execute="immediate"
                   Return="check"
                   Impersonate="no" />
 
