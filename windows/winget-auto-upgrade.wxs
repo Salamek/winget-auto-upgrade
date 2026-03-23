@@ -38,18 +38,27 @@
                       Name="Path" />
     </Property>
 
+    <!-- WixQuietExec reads the command from a property with the same Id as the CA.
+         [POWERSHELLEXE] and [INSTALLDIR] are expanded when the install script is built. -->
+    <Property Id="CA_Install"
+              Value="&quot;[POWERSHELLEXE]&quot; -WindowStyle Hidden -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot;" />
+    <Property Id="CA_Uninstall"
+              Value="&quot;[POWERSHELLEXE]&quot; -WindowStyle Hidden -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot; -Uninstall" />
+
     <!-- All task management delegated to msi-actions.ps1 -->
     <CustomAction Id="CA_Install"
-                  Property="POWERSHELLEXE"
-                  ExeCommand="-WindowStyle Hidden -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot;"
-                  Execute="immediate"
-                  Return="ignore" />
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Return="check"
+                  Impersonate="no" />
 
     <CustomAction Id="CA_Uninstall"
-                  Property="POWERSHELLEXE"
-                  ExeCommand="-WindowStyle Hidden -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot; -Uninstall"
-                  Execute="immediate"
-                  Return="ignore" />
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Return="check"
+                  Impersonate="no" />
 
     <InstallExecuteSequence>
       <Custom Action="CA_Install" After="InstallFiles"
