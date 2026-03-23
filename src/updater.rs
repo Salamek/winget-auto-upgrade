@@ -57,6 +57,16 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
         })
         .collect();
 
+    // Move self-package to the end so upgrading it doesn't kill us mid-run.
+    // Detection: the exe stem (e.g. "winget-auto-upgrade") is a suffix of the package id
+    // (e.g. "salamek.winget-auto-upgrade"), matched case-insensitively.
+    let self_name = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_lowercase()))
+        .unwrap_or_default();
+    let mut upgrades = upgrades;
+    upgrades.sort_by_key(|u| u.from.id.to_lowercase().ends_with(&self_name) as u8);
+
     if upgrades.is_empty() {
         notifier.info("Winget Update", "No updates available");
         info!("No updates found.");
