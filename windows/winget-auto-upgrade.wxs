@@ -38,20 +38,24 @@
                       Name="Path" />
     </Property>
 
+    <!-- conhost.exe lives in System32 — hardcoded path used as the Type 50 executable
+         so the console window is suppressed via the headless flag -->
+    <Property Id="CONHOSTEXE" Value="C:\Windows\System32\conhost.exe" />
+
     <!-- All task management delegated to msi-actions.ps1.
          Launched via conhost.exe (headless) to suppress the console window.
          Type 50 (Property-based EXE): Property = executable, ExeCommand = arguments.
          Deferred execution runs in the msiexec service (Session 0) with full elevation. -->
     <CustomAction Id="CA_Install"
-                  Property="SystemFolder"
-                  ExeCommand="conhost.exe --headless &quot;[POWERSHELLEXE]&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot;"
+                  Property="CONHOSTEXE"
+                  ExeCommand="--headless &quot;[POWERSHELLEXE]&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot;"
                   Execute="deferred"
                   Return="check"
                   Impersonate="no" />
 
     <CustomAction Id="CA_Uninstall"
-                  Property="SystemFolder"
-                  ExeCommand="conhost.exe --headless &quot;[POWERSHELLEXE]&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot; -Uninstall"
+                  Property="CONHOSTEXE"
+                  ExeCommand="--headless &quot;[POWERSHELLEXE]&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]msi-actions.ps1&quot; -Uninstall"
                   Execute="deferred"
                   Return="check"
                   Impersonate="no" />
@@ -59,7 +63,7 @@
     <InstallExecuteSequence>
       <Custom Action="CA_Install" After="InstallFiles"
               Condition="NOT REMOVE" />
-      <Custom Action="CA_Uninstall" Before="RemoveFiles"
+      <Custom Action="CA_Uninstall" Before='RemoveFiles'
               Condition="REMOVE=&quot;ALL&quot;" />
     </InstallExecuteSequence>
 
