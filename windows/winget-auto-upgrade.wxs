@@ -63,7 +63,7 @@
     <InstallExecuteSequence>
       <Custom Action="CA_Install" After="InstallFiles"
               Condition="NOT REMOVE" />
-      <Custom Action="CA_Uninstall" Before='RemoveFiles'
+      <Custom Action="CA_Uninstall" After='InstallInitialize'
               Condition="REMOVE=&quot;ALL&quot; OR REINSTALL" />
     </InstallExecuteSequence>
 
