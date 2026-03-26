@@ -68,7 +68,6 @@ pub fn run_update<P: PackageManager, N: Notifier, S: System>(
     upgrades.sort_by_key(|u| u.from.id.to_lowercase().ends_with(&self_name) as u8);
 
     if upgrades.is_empty() {
-        notifier.info("Winget Update", "No updates available");
         info!("No updates found.");
         if is_system && sys.has_active_user_session() {
             trigger_user_context_task();
