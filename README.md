@@ -25,6 +25,9 @@ Add the custom source and install:
 winget source add -n salamek-win -t "Microsoft.Rest" -a https://repository.salamek.cz/win/api/
 winget install salamek.winget-auto-upgrade --silent --accept-package-agreements --accept-source-agreements
 ```
+### From MSI
+
+Download lates release MSI in downloads and install as normal
 
 ### From source
 
